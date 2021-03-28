@@ -1,15 +1,15 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting, TAbstractFile, TFile, TFolder } from "obsidian";
+import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, TAbstractFile, TFile, TFolder } from "obsidian";
 
-interface MyPluginSettings {
+interface HotkeysForTemplateSettings {
   files: string[];
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: HotkeysForTemplateSettings = {
   files: []
 };
 
 export default class HotkeysForTemplates extends Plugin {
-  settings: MyPluginSettings;
+  settings: HotkeysForTemplateSettings;
   corePlugin: any;
 
   async onload() {
@@ -18,33 +18,39 @@ export default class HotkeysForTemplates extends Plugin {
     this.corePlugin = (this.app as any).internalPlugins.plugins["templates"].instance;
     this.addSettingTab(new SettingsTab(this.app, this));
 
-    for (const file of this.settings.files) {
-      this.pushCommand(this, file);
-    }
+    this.app.workspace.onLayoutReady(() => {
+
+      if (!this.corePlugin.options.folder) {
+        new Notice("Template folder must be set");
+        return;
+      }
+
+      for (const file of this.settings.files) {
+        this.pushCommand(file);
+      }
+    });
   }
 
   onunload() {
     console.log('unloading ' + this.manifest.name + " plugin");
   }
 
-  pushCommand(plugin: HotkeysForTemplates, fileName: string) {
-    plugin.addCommand({
-      id: fileName,
-      name: `Insert ${fileName.replace(".md", "")}`,
-      callback: () => this.insertTemplate(fileName)
-    });
+  pushCommand(fileName: string) {
+    if (this.getFile(fileName)) {
+      this.addCommand({
+        id: fileName,
+        name: `Insert ${fileName.replace(".md", "")}`,
+        callback: () => this.insertTemplate(fileName)
+      });
+    } else {
+      this.settings.files.remove(fileName);
+      this.saveSettings();
+    }
   }
 
 
-  insertTemplate(filePath: string): void {
-    const templateFolder = this.corePlugin.options.folder;
-
-    if (!templateFolder) {
-      new Notice("Template folder must be set");
-      return;
-    }
-
-    const file = this.app.vault.getAbstractFileByPath(templateFolder + "/" + filePath);
+  insertTemplate(fileName: string): void {
+    const file = this.getFile(fileName);
 
     if (!(file instanceof TFile)) {
       new Notice("Cannot find file");
@@ -52,6 +58,18 @@ export default class HotkeysForTemplates extends Plugin {
     }
 
     this.corePlugin.insertTemplate(file);
+  }
+
+  getFile(fileName: string) {
+    const templateFolder = this.corePlugin.options.folder;
+
+    if (!templateFolder) {
+      new Notice("Template folder must be set");
+      return;
+    }
+
+    const file = this.app.vault.getAbstractFileByPath(normalizePath(templateFolder) + "/" + fileName);
+    return file;
   }
 
   async loadSettings() {
@@ -73,10 +91,10 @@ class SettingsTab extends PluginSettingTab {
   }
 
   display(): void {
+    this.templateFolderPath = normalizePath(this.plugin.corePlugin.options.folder);
 
-    this.templateFolderPath = this.plugin.corePlugin.options.folder;
     const templateFolder = this.plugin.app.vault.getAbstractFileByPath(this.templateFolderPath);
-    if (!(templateFolder instanceof TFolder)) {
+    if (!this.plugin.corePlugin.options.folder || !(templateFolder instanceof TFolder)) {
       new Notice("Cannot find template folder");
       return;
     }
@@ -89,13 +107,6 @@ class SettingsTab extends PluginSettingTab {
     containerEl.createEl("h3", {
       text: "By enabling a template, a command is added. You can set the hotkey for the command in the default 'Hotkeys' section",
     });
-
-    for (const file of this.plugin.settings.files) {
-      if (!this.templateFiles.contains(file)) {
-        this.plugin.settings.files.remove(file);
-      }
-    }
-    this.plugin.saveSettings();
 
     for (const file of this.templateFiles) {
       this.addTextField(file);
@@ -110,7 +121,7 @@ class SettingsTab extends PluginSettingTab {
         .onChange((value) => {
           if (value) {
             this.plugin.settings.files.push(file);
-            this.plugin.pushCommand(this.plugin, file);
+            this.plugin.pushCommand(file);
           } else {
             this.plugin.settings.files.remove(file);
             (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file}`);
