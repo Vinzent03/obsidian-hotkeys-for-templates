@@ -1,7 +1,7 @@
 {
   "name": "obsidian-hotkeys-for-templates",
   "version": "0.9.7",
-  "description": "Add hotkeys to insert specified templates",
+  "description": "Add hotkeys to insert specific templates",
   "main": "main.js",
   "scripts": {
     "dev": "rollup --config rollup.config.js -w",
