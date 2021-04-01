@@ -15,7 +15,12 @@ export default class HotkeysForTemplates extends Plugin {
   async onload() {
     console.log('loading ' + this.manifest.name + " plugin");
     await this.loadSettings();
-    this.corePlugin = (this.app as any).internalPlugins.plugins["templates"].instance;
+    this.corePlugin = (this.app as any).internalPlugins?.plugins["templates"]?.instance;
+    if (!this.corePlugin) {
+      new Notice("Cannot find Templates plugin. Please file an issue.");
+      return;
+    }
+
     this.addSettingTab(new SettingsTab(this.app, this));
 
     this.app.workspace.onLayoutReady(() => {
@@ -109,11 +114,11 @@ class SettingsTab extends PluginSettingTab {
     });
 
     for (const file of this.templateFiles) {
-      this.addTextField(file);
+      this.addTemplateToggle(file);
     }
   }
 
-  addTextField(file: string) {
+  addTemplateToggle(file: string) {
     new Setting(this.containerEl)
       .setName(file.replace(".md", ""))
       .addToggle(cb => cb
