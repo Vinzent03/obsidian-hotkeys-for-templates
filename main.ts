@@ -54,7 +54,7 @@ export default class HotkeysForTemplates extends Plugin {
     if (this.getFile(templateFile)) {
       if (templateFile.plugin === "core") {
         this.addCommand({
-          id: templateFile.plugin + ":" + templateFile.path,
+          id: templateFile.path,
           name: `Insert: ${templateFile.path.replace(".md", "")}`,
           callback: () => this.coreInsertTemplate(templateFile)
         });
