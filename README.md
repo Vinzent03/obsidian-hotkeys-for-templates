@@ -7,6 +7,10 @@ This plugin lists all of your template files in its settings pane. You have to e
 
 **Important:** You have to enable and set a template folder in the core template plugin settings. Search for it in the help vault if you don't know the core plugin.
 
+**Supported templates:** 
+- Templates from the core templates plugin
+- Templates from the **Templater** plugin.
+
 ![Settings](https://raw.githubusercontent.com/Vinzent03/obsidian-hotkeys-for-templates/master/assets/settings.png)
 ![Hotkeys section](https://raw.githubusercontent.com/Vinzent03/obsidian-hotkeys-for-templates/master/assets/hotkeys-section.png)
 

@@ -1,11 +1,18 @@
 import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, TAbstractFile, TFile, TFolder } from "obsidian";
 
+interface TemplateFile {
+  plugin: "core" | "templater";
+  path: string;
+}
+
 interface HotkeysForTemplateSettings {
   files: string[];
+  templaterFiles: string[];
 }
 
 const DEFAULT_SETTINGS: HotkeysForTemplateSettings = {
-  files: []
+  files: [],
+  templaterFiles: []
 };
 
 export default class HotkeysForTemplates extends Plugin {
@@ -31,7 +38,10 @@ export default class HotkeysForTemplates extends Plugin {
       }
 
       for (const file of this.settings.files) {
-        this.pushCommand(file);
+        this.pushCommand({ path: file, plugin: "core" });
+      }
+      for (const file of this.settings.templaterFiles) {
+        this.pushCommand({ path: file, plugin: "templater" });
       }
     });
   }
@@ -40,21 +50,33 @@ export default class HotkeysForTemplates extends Plugin {
     console.log('unloading ' + this.manifest.name + " plugin");
   }
 
-  pushCommand(fileName: string) {
-    if (this.getFile(fileName)) {
-      this.addCommand({
-        id: fileName,
-        name: `Insert ${fileName.replace(".md", "")}`,
-        callback: () => this.insertTemplate(fileName)
-      });
+  pushCommand(templateFile: TemplateFile) {
+    if (this.getFile(templateFile)) {
+      if (templateFile.plugin === "core") {
+        this.addCommand({
+          id: templateFile.plugin + ":" + templateFile.path,
+          name: `Insert: ${templateFile.path.replace(".md", "")}`,
+          callback: () => this.coreInsertTemplate(templateFile)
+        });
+      } else {
+        this.addCommand({
+          id: templateFile.plugin + ":" + templateFile.path,
+          name: `Insert from Templater: ${templateFile.path.replace(".md", "")}`,
+          callback: () => this.templaterInsertTemplate(templateFile)
+        });
+      }
     } else {
-      this.settings.files.remove(fileName);
+      if (templateFile.plugin === "core") {
+        this.settings.files.remove(templateFile.path);
+      } else {
+        this.settings.templaterFiles.remove(templateFile.path);
+      }
       this.saveSettings();
     }
   }
 
 
-  insertTemplate(fileName: string): void {
+  coreInsertTemplate(fileName: TemplateFile): void {
     const file = this.getFile(fileName);
 
     if (!(file instanceof TFile)) {
@@ -65,16 +87,37 @@ export default class HotkeysForTemplates extends Plugin {
     this.corePlugin.insertTemplate(file);
   }
 
-  getFile(fileName: string) {
-    const templateFolder = this.corePlugin.options.folder;
+  templaterInsertTemplate(fileName: TemplateFile): void {
+    const file = this.getFile(fileName);
+
+    if (!(file instanceof TFile)) {
+      new Notice("Cannot find file");
+      return;
+    }
+
+    this.getTemplater().fuzzy_suggester.replace_templates_and_append(file);
+  }
+
+  getFile(fileName: TemplateFile) {
+    let templateFolder;
+
+    if (fileName.plugin === "core") {
+      templateFolder = this.corePlugin.options.folder;
+    } else {
+      templateFolder = this.getTemplater().settings.template_folder;
+    }
 
     if (!templateFolder) {
       new Notice("Template folder must be set");
       return;
     }
 
-    const file = this.app.vault.getAbstractFileByPath(normalizePath(templateFolder) + "/" + fileName);
+    const file = this.app.vault.getAbstractFileByPath(normalizePath(templateFolder) + "/" + fileName.path);
     return file;
+  }
+
+  getTemplater() {
+    return (this.app as any).plugins.plugins["templater-obsidian"];
   }
 
   async loadSettings() {
@@ -88,58 +131,96 @@ export default class HotkeysForTemplates extends Plugin {
 
 class SettingsTab extends PluginSettingTab {
   plugin: HotkeysForTemplates;
-  templateFiles: string[] = [];
-  templateFolderPath: string;
   constructor(app: App, plugin: HotkeysForTemplates) {
     super(app, plugin);
     this.plugin = plugin;
   }
 
   display(): void {
-    this.templateFolderPath = normalizePath(this.plugin.corePlugin.options.folder);
-
-    const templateFolder = this.plugin.app.vault.getAbstractFileByPath(this.templateFolderPath);
-    if (!this.plugin.corePlugin.options.folder || !(templateFolder instanceof TFolder)) {
-      new Notice("Cannot find template folder");
-      return;
-    }
-    this.templateFiles = [];
-    this.getTemplateFiles(templateFolder);
 
     let { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: this.plugin.manifest.name });
     containerEl.createEl("h3", {
-      text: "By enabling a template, a command is added. You can set the hotkey for the command in the default 'Hotkeys' section",
+      text: "By enabling a template, a command is added. You can set the hotkey for the command in the default 'Hotkeys' section. If you have the 'Templater plugin' installed, you can set hotkeys for these templates too.",
     });
 
-    for (const file of this.templateFiles) {
+    // core templates plugin
+    containerEl.createEl("h4", {
+      text: "Templates by the core Templates plugin",
+    });
+    const coreTemplateFolderPath = normalizePath(this.plugin.corePlugin.options.folder);
+
+    const coreTemplateFolder = this.plugin.app.vault.getAbstractFileByPath(coreTemplateFolderPath);
+    if (!this.plugin.corePlugin.options.folder || !(coreTemplateFolder instanceof TFolder)) {
+      new Notice("Cannot find template folder from core plugin.");
+      return;
+    }
+    const coreTemplates = this.getTemplateFiles(coreTemplateFolder, coreTemplateFolderPath).map((e): TemplateFile => {
+      return { path: e, plugin: "core" };
+    });
+    for (const file of coreTemplates) {
+      this.addTemplateToggle(file);
+    }
+
+    // templater plugin
+    const templater = this.plugin.getTemplater();
+    if (!templater) return;
+
+    containerEl.createEl("h4", {
+      text: "Templates by the Templater plugin",
+    });
+
+    const templaterTemplateFolderPath = templater.settings.template_folder;
+    const templaterTemplateFolder = this.plugin.app.vault.getAbstractFileByPath(templaterTemplateFolderPath);
+    if (!templater.settings.template_folder || !(templaterTemplateFolder instanceof TFolder)) {
+      new Notice("Cannot find template folder from Templater plugin");
+      return;
+    }
+    const templaterTemplates = this.getTemplateFiles(coreTemplateFolder, coreTemplateFolderPath).map((e): TemplateFile => {
+      return { path: e, plugin: "templater" };
+    });
+
+    for (const file of templaterTemplates) {
       this.addTemplateToggle(file);
     }
   }
 
-  addTemplateToggle(file: string) {
+  addTemplateToggle(file: TemplateFile) {
     new Setting(this.containerEl)
-      .setName(file.replace(".md", ""))
+      .setName(file.path.replace(".md", ""))
       .addToggle(cb => cb
-        .setValue(this.plugin.settings.files.contains(file))
-        .onChange((value) => {
-          if (value) {
-            this.plugin.settings.files.push(file);
-            this.plugin.pushCommand(file);
-          } else {
-            this.plugin.settings.files.remove(file);
-            (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file}`);
-          }
-          this.plugin.saveSettings();
-        }));
+        .setValue(file.plugin === "core" ? this.plugin.settings.files.contains(file.path) : this.plugin.settings.templaterFiles.contains(file.path))
+        .onChange((value) => this.onToggleChange(value, file)));
+  }
+  onToggleChange(value: boolean, file: TemplateFile) {
+    if (value) {
+      if (file.plugin === "core") {
+        this.plugin.settings.files.push(file.path);
+      } else {
+        this.plugin.settings.templaterFiles.push(file.path);
+      }
+      this.plugin.pushCommand(file);
+    } else {
+      if (file.plugin === "core") {
+        this.plugin.settings.files.remove(file.path);
+      } else {
+        this.plugin.settings.templaterFiles.remove(file.path);
+      }
+      (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file.plugin}:${file.path}`);
+    }
+    this.plugin.saveSettings();
   }
 
-  getTemplateFiles(file: TAbstractFile) {
+  getTemplateFiles(file: TAbstractFile, folderPath: string): string[] {
     if (file instanceof TFile && file.extension === "md") {
-      this.templateFiles.push(file.path.substring(this.templateFolderPath.length + 1));
+      return [file.path.substring(folderPath.length + 1)];
     } else if (file instanceof TFolder) {
-      file.children.forEach(file => this.getTemplateFiles(file));
+      let temp: string[] = [];
+      file.children.forEach(file => temp.push(...this.getTemplateFiles(file, folderPath)));
+      return temp;
+    } else {
+      return [];
     }
   }
 }
