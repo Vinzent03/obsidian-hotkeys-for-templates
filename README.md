@@ -9,7 +9,7 @@ This plugin lists all of your template files in its settings pane. You have to e
 
 **Supported templates:** 
 - Templates from the core templates plugin
-- Templates from the **Templater** plugin.
+- Templates from the [Templater](https://github.com/SilentVoid13/Templater) plugin
 
 ![Settings](https://raw.githubusercontent.com/Vinzent03/obsidian-hotkeys-for-templates/master/assets/settings.png)
 ![Hotkeys section](https://raw.githubusercontent.com/Vinzent03/obsidian-hotkeys-for-templates/master/assets/hotkeys-section.png)
@@ -31,9 +31,8 @@ Custom plugins are only available for Obsidian v0.9.7+.
 ### From GitHub
 1. Download the [latest release](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/releases/latest)
 2. Move `manifest.json` and `main.js` to `<vault>/.obsidian/plugins/obsidian-hotkeys-for-templates`
-3. Reload Obsidian (Str + r)
-4. Go to settings and disable safe mode
-5. Enable `Hotkeys for templates`
+3. Go to settings and disable safe mode
+4. Enable `Hotkeys for templates`
 
 ---
 
