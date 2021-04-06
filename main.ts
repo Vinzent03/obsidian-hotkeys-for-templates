@@ -94,8 +94,18 @@ export default class HotkeysForTemplates extends Plugin {
       new Notice("Cannot find file");
       return;
     }
+    const templater = this.getTemplater();
+    if (!templater) {
+      new Notice("Templater plugin in not enabled");
+      return;
+    }
+    const func = templater.parser?.replace_templates_and_append;
 
-    this.getTemplater().fuzzy_suggester.replace_templates_and_append(file);
+    if (!func) {
+      new Notice("Are you on the latest Templater plugin version?");
+      return;
+    }
+    templater.parser?.replace_templates_and_append(file);
   }
 
   getFile(fileName: TemplateFile) {
