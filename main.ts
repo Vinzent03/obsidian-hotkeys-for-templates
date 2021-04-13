@@ -39,31 +39,33 @@ export default class HotkeysForTemplates extends Plugin {
   }
 
   enumerateTemplates() {
-    // console.log(this.manifest.name + ': enumerating templates');
     this.activePlugins = [];
     this.corePlugin = (this.app as any).internalPlugins?.plugins["templates"];
     this.templaterPlugin = (this.app as any).plugins.plugins["templater-obsidian"];
+
     if (this.templaterPlugin && this.templaterPlugin._loaded) { // templater-obsidian enabled
-      this.activePlugins.push('templater-obsidian');
-      let templaterFolderPath = normalizePath(this.templaterPlugin.settings.template_folder);
-      this.templaterFolder = (this.app.vault.getAbstractFileByPath(templaterFolderPath) as TFolder);
-      if (!this.templaterFolder || !(this.templaterFolder instanceof TFolder)) {
+      const templaterFolderPath = normalizePath(this.templaterPlugin.settings.template_folder);
+      const templaterFolder = this.app.vault.getAbstractFileByPath(templaterFolderPath);
+      if (!(templaterFolder instanceof TFolder) || templaterFolderPath === "/") {
         new Notice("Templater folder must be set");
       } else {
-        // console.log('Templater folder: ' + this.templaterFolder.path);
+        this.templaterFolder = templaterFolder;
+        this.activePlugins.push('templater-obsidian');
+
         for (const file of this.settings.templaterFiles) {
           this.pushCommand({ path: file, plugin: "templater" });
         }
       }
     }
     if (this.corePlugin && this.corePlugin.enabled) { //core plugin enabled
-      this.activePlugins.push('core');
-      let coreTemplateFolderPath = normalizePath(this.corePlugin.instance.options.folder);
-      this.coreTemplateFolder = (this.app.vault.getAbstractFileByPath(coreTemplateFolderPath) as TFolder);
-      if (!this.coreTemplateFolder || !(this.coreTemplateFolder instanceof TFolder)) {
+      const coreTemplateFolderPath = normalizePath(this.corePlugin.instance.options.folder);
+      const coreTemplateFolder = this.app.vault.getAbstractFileByPath(coreTemplateFolderPath);
+      if (!(coreTemplateFolder instanceof TFolder) || coreTemplateFolderPath === "/") {
         new Notice("Template (core plugin) folder must be set");
       } else {
-        // console.log('core Template folder: ' + this.coreTemplateFolder.path);
+        this.coreTemplateFolder = coreTemplateFolder;
+        this.activePlugins.push('core');
+
         for (const file of this.settings.files) {
           this.pushCommand({ path: file, plugin: "core" });
         }
@@ -79,7 +81,7 @@ export default class HotkeysForTemplates extends Plugin {
 
   pushCommand(templateFile: TemplateFile) {
     if (this.getFile(templateFile)) {
-      switch(templateFile.plugin) {
+      switch (templateFile.plugin) {
         case 'core':
           this.addCommand({
             id: templateFile.path,
@@ -95,11 +97,11 @@ export default class HotkeysForTemplates extends Plugin {
           });
           break;
         default:
-          new Notice(this.manifest.name + ': Unknown plugin type for ' + templateFile.path);          
+          new Notice(this.manifest.name + ': Unknown plugin type for ' + templateFile.path);
           return;
       }
     } else {
-      switch(templateFile.plugin) {
+      switch (templateFile.plugin) {
         case 'core':
           this.settings.files.remove(templateFile.path);
           break;
@@ -137,7 +139,7 @@ export default class HotkeysForTemplates extends Plugin {
   getFile(file: TemplateFile): TFile {
     let thisTemplateFolder;
     let thisTemplateFile;
-    switch(file.plugin) { 
+    switch (file.plugin) {
       case 'core':
         thisTemplateFolder = this.coreTemplateFolder.path;
         break;
@@ -179,7 +181,7 @@ class SettingsTab extends PluginSettingTab {
       containerEl.createEl("h3", {
         text: this.plugin.noActivePluginMsg
       });
-      return
+      return;
     }
     containerEl.createEl("h4", {
       text: "By enabling a template, a command is added. You can set the hotkey for the command in the default 'Hotkeys' section.",
@@ -209,7 +211,7 @@ class SettingsTab extends PluginSettingTab {
   }
 
   templateIsEnabled(file: TemplateFile): boolean {
-    switch(file.plugin) {
+    switch (file.plugin) {
       case 'core':
         return this.plugin.settings.files.contains(file.path);
       case 'templater':
@@ -229,7 +231,7 @@ class SettingsTab extends PluginSettingTab {
   }
   onToggleChange(value: boolean, file: TemplateFile) {
     if (value) {
-      switch(file.plugin) {
+      switch (file.plugin) {
         case 'core':
           this.plugin.settings.files.push(file.path);
           break;
@@ -242,7 +244,7 @@ class SettingsTab extends PluginSettingTab {
       }
       this.plugin.pushCommand(file);
     } else {
-      switch(file.plugin) {
+      switch (file.plugin) {
         case 'core':
           this.plugin.settings.files.remove(file.path);
           break;
