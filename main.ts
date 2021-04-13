@@ -1,17 +1,17 @@
 import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, TAbstractFile, TFile, TFolder } from "obsidian";
 
 interface TemplateFile {
-  plugin: "core" | "templater-obsidian";
+  plugin: "core" | "templater";
   path: string;
 }
 
 interface HotkeysForTemplateSettings {
-  coreFiles: string[],
+  files: string[],
   templaterFiles: string[],
 }
 
 const DEFAULT_SETTINGS: HotkeysForTemplateSettings = {
-  coreFiles: [],
+  files: [],
   templaterFiles: [],
 };
 
@@ -43,7 +43,7 @@ export default class HotkeysForTemplates extends Plugin {
         } else {
           // console.log('Templater folder: ' + this.templaterFolderPath);
           for (const file of this.settings.templaterFiles) {
-            this.pushCommand({ path: file, plugin: "templater-obsidian" });
+            this.pushCommand({ path: file, plugin: "templater" });
           }
         }
       }
@@ -55,7 +55,7 @@ export default class HotkeysForTemplates extends Plugin {
           new Notice("Template (core plugin) folder must be set");
         } else {
           // console.log('core Template folder: ' + this.coreTemplateFolderPath);
-          for (const file of this.settings.coreFiles) {
+          for (const file of this.settings.files) {
             this.pushCommand({ path: file, plugin: "core" });
           }
         }
@@ -83,7 +83,7 @@ export default class HotkeysForTemplates extends Plugin {
             callback: () => this.coreInsertTemplate(templateFile)
           });
           break;
-        case 'templater-obsidian':
+        case 'templater':
           this.addCommand({
             id: templateFile.plugin + ":" + templateFile.path,
             name: `Insert from Templater: ${templateFile.path.replace(".md", "")}`,
@@ -97,9 +97,9 @@ export default class HotkeysForTemplates extends Plugin {
     } else {
       switch(templateFile.plugin) {
         case 'core':
-          this.settings.coreFiles.remove(templateFile.path);
+          this.settings.files.remove(templateFile.path);
           break;
-        case 'templater-obsidian':
+        case 'templater':
           this.settings.templaterFiles.remove(templateFile.path);
           break;
         default:
@@ -139,7 +139,7 @@ export default class HotkeysForTemplates extends Plugin {
       case 'core':
         thisTemplateFolder = this.coreTemplateFolderPath;
         break;
-      case 'templater-obsidian':
+      case 'templater':
         thisTemplateFolder = this.templaterFolderPath;
         break;
       default:
@@ -185,7 +185,7 @@ class SettingsTab extends PluginSettingTab {
         text: "Templates defined by the templater-obsidian plugin",
       });
       const templaterTemplates = this.getTemplateFiles(this.plugin.templaterFolder, this.plugin.templaterFolderPath).map((e): TemplateFile => {
-        return { path: e, plugin: "templater-obsidian" };
+        return { path: e, plugin: "templater" };
       });
       for (const file of templaterTemplates) {
         this.addTemplateToggle(file);
@@ -208,8 +208,8 @@ class SettingsTab extends PluginSettingTab {
   templateIsEnabled(file: TemplateFile): boolean {
     switch(file.plugin) {
       case 'core':
-        return this.plugin.settings.coreFiles.contains(file.path);
-      case 'templater-obsidian':
+        return this.plugin.settings.files.contains(file.path);
+      case 'templater':
         return this.plugin.settings.templaterFiles.contains(file.path);
       default:
         console.log(file.path + ' is associated with an unknown plugin');
@@ -228,9 +228,9 @@ class SettingsTab extends PluginSettingTab {
     if (value) {
       switch(file.plugin) {
         case 'core':
-          this.plugin.settings.coreFiles.push(file.path);
+          this.plugin.settings.files.push(file.path);
           break;
-        case 'templater-obsidian':
+        case 'templater':
           this.plugin.settings.templaterFiles.push(file.path);
           break;
         default:
@@ -241,9 +241,9 @@ class SettingsTab extends PluginSettingTab {
     } else {
       switch(file.plugin) {
         case 'core':
-          this.plugin.settings.coreFiles.remove(file.path);
+          this.plugin.settings.files.remove(file.path);
           break;
-        case 'templater-obsidian':
+        case 'templater':
           this.plugin.settings.templaterFiles.remove(file.path);
           break;
         default:
