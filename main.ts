@@ -247,15 +247,16 @@ class SettingsTab extends PluginSettingTab {
       switch (file.plugin) {
         case 'core':
           this.plugin.settings.files.remove(file.path);
+          (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file.path}`);
           break;
         case 'templater':
           this.plugin.settings.templaterFiles.remove(file.path);
+          (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file.plugin}:${file.path}`);
           break;
         default:
           console.log(file.path + ' is associated with an unknown plugin');
           return;
       }
-      (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file.plugin}:${file.path}`);
     }
     this.plugin.saveSettings();
   }
