@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.3](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.0.2...1.0.3) (2021-04-13)
+
+
+### Bug Fixes
+
+* only activating the Templater plugin was not possible ([dbbcd5f](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/dbbcd5f414489a145d3fe80e28412296ec684af4)), closes [#2](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/issues/2)
+* removing command from core templates plugin failed ([36eeb8c](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/36eeb8cb298b71dbc274a12c9d3f16eb8c2cf002))
+* template plugin was activated athough the folder was not valid ([c4a7cd9](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/c4a7cd998eb74f5d6d6938cb71975c23c0d4173b))
+
 ### [1.0.2](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.0.1...1.0.2) (2021-04-06)
 
 
