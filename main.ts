@@ -30,47 +30,53 @@ export default class HotkeysForTemplates extends Plugin {
   async onload() {
     console.log('loading ' + this.manifest.name + ' plugin v' + this.manifest.version);
     await this.loadSettings();
-    this.corePlugin = (this.app as any).internalPlugins?.plugins["templates"];
-    this.templaterPlugin = (this.app as any).plugins.plugins["templater-obsidian"];
-    this.addSettingTab(new SettingsTab(this.app, this));
     this.app.workspace.onLayoutReady(() => {
-      if (this.templaterPlugin && this.templaterPlugin._loaded) { // templater-obsidian enabled
-        this.activePlugins.push('templater-obsidian');
-        this.templaterFolderPath = normalizePath(this.templaterPlugin.settings.template_folder);
-        this.templaterFolder = this.app.vault.getAbstractFileByPath(this.templaterFolderPath);
-        if (!this.templaterFolderPath || !(this.templaterFolder instanceof TFolder)) {
-          new Notice("Templater folder must be set");
-        } else {
-          // console.log('Templater folder: ' + this.templaterFolderPath);
-          for (const file of this.settings.templaterFiles) {
-            this.pushCommand({ path: file, plugin: "templater" });
-          }
-        }
-      }
-      if (this.corePlugin && this.corePlugin.enabled) { //core plugin enabled
-        this.activePlugins.push('core');
-        this.coreTemplateFolderPath = normalizePath(this.corePlugin.instance.options.folder);
-        this.coreTemplateFolder = this.app.vault.getAbstractFileByPath(this.coreTemplateFolderPath);
-        if (!this.coreTemplateFolderPath || !(this.coreTemplateFolder instanceof TFolder)) {
-          new Notice("Template (core plugin) folder must be set");
-        } else {
-          // console.log('core Template folder: ' + this.coreTemplateFolderPath);
-          for (const file of this.settings.files) {
-            this.pushCommand({ path: file, plugin: "core" });
-          }
-        }
-      }
-      if (!this.activePlugins.length) {
-        new Notice(this.manifest.name + ': ' + this.noActivePluginMsg);
-        return;
-      } else {
-        console.log(this.manifest.name + ' -> active plugins: ' + this.activePlugins);
-      }
+      this.addSettingTab(new SettingsTab(this.app, this));
+      this.enumerateTemplates();
     });
   }
 
   onunload() {
     console.log('unloading ' + this.manifest.name + " plugin");
+  }
+
+  enumerateTemplates() {
+    // console.log(this.manifest.name + ': enumerating templates');
+    this.activePlugins = [];
+    this.corePlugin = (this.app as any).internalPlugins?.plugins["templates"];
+    this.templaterPlugin = (this.app as any).plugins.plugins["templater-obsidian"];
+    if (this.templaterPlugin && this.templaterPlugin._loaded) { // templater-obsidian enabled
+      this.activePlugins.push('templater-obsidian');
+      this.templaterFolderPath = normalizePath(this.templaterPlugin.settings.template_folder);
+      this.templaterFolder = this.app.vault.getAbstractFileByPath(this.templaterFolderPath);
+      if (!this.templaterFolderPath || !(this.templaterFolder instanceof TFolder)) {
+        new Notice("Templater folder must be set");
+      } else {
+        // console.log('Templater folder: ' + this.templaterFolderPath);
+        for (const file of this.settings.templaterFiles) {
+          this.pushCommand({ path: file, plugin: "templater" });
+        }
+      }
+    }
+    if (this.corePlugin && this.corePlugin.enabled) { //core plugin enabled
+      this.activePlugins.push('core');
+      this.coreTemplateFolderPath = normalizePath(this.corePlugin.instance.options.folder);
+      this.coreTemplateFolder = this.app.vault.getAbstractFileByPath(this.coreTemplateFolderPath);
+      if (!this.coreTemplateFolderPath || !(this.coreTemplateFolder instanceof TFolder)) {
+        new Notice("Template (core plugin) folder must be set");
+      } else {
+        // console.log('core Template folder: ' + this.coreTemplateFolderPath);
+        for (const file of this.settings.files) {
+          this.pushCommand({ path: file, plugin: "core" });
+        }
+      }
+    }
+    if (!this.activePlugins.length) {
+      new Notice(this.manifest.name + ': ' + this.noActivePluginMsg);
+      return;
+    } else {
+      console.log(this.manifest.name + ' -> active plugins: ' + this.activePlugins);
+    }
   }
 
   pushCommand(templateFile: TemplateFile) {
@@ -168,6 +174,7 @@ class SettingsTab extends PluginSettingTab {
 
   display(): void {
     let { containerEl } = this;
+    this.plugin.enumerateTemplates();
     containerEl.empty();
     containerEl.createEl("h2", { text: this.plugin.manifest.name });
     if (!this.plugin.activePlugins.length) {
