@@ -148,7 +148,7 @@ export default class HotkeysForTemplates extends Plugin {
             return;
           }
           const file = await (this.app.fileManager as any).createNewMarkdownFile(folder);
-          await this.app.workspace.getLeaf().openFile(file, {
+          await this.app.workspace.splitActiveLeaf().openFile(file, {
             active: true,
             state: {
               mode: "source"
