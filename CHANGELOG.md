@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.0.3...1.1.0) (2021-04-27)
+
+
+### Features
+
+* add new-file-templates ([32af9bd](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/32af9bdacaeae73790dadb6bd7791450ad3a5c42)), closes [#3](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/issues/3)
+
 ### [1.0.3](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.0.2...1.0.3) (2021-04-13)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "obsidian-hotkeys-for-templates",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Add hotkeys to insert specific templates",
   "main": "main.js",
   "scripts": {
