@@ -14,12 +14,15 @@ interface HotkeysForTemplateSettings {
   files: string[],
   templaterFiles: string[],
   newFileTemplates: NewFileTemplate[];
+  openNewFileTemplateInNewPane: boolean;
 }
 
 const DEFAULT_SETTINGS: HotkeysForTemplateSettings = {
   files: [],
   templaterFiles: [],
-  newFileTemplates: []
+  newFileTemplates: [],
+  openNewFileTemplateInNewPane: true,
+
 };
 
 export default class HotkeysForTemplates extends Plugin {
@@ -148,7 +151,7 @@ export default class HotkeysForTemplates extends Plugin {
             return;
           }
           const file = await (this.app.fileManager as any).createNewMarkdownFile(folder);
-          await this.app.workspace.getLeaf().openFile(file, {
+          await this.app.workspace.getLeaf(this.settings.openNewFileTemplateInNewPane).openFile(file, {
             active: true,
             state: {
               mode: "source"
@@ -286,6 +289,16 @@ class SettingsTab extends PluginSettingTab {
     containerEl.createEl("h3", {
       text: "Create a new file in a specified folder with a specified template"
     });
+
+    new Setting(containerEl)
+      .setName("Open in new pane")
+      .addToggle(cb => {
+        cb.setValue(this.plugin.settings.openNewFileTemplateInNewPane);
+        cb.onChange(value => {
+          this.plugin.settings.openNewFileTemplateInNewPane = value;
+          this.plugin.saveSettings();
+        });
+      });
 
     new Setting(containerEl)
       .setName("Add new text field")
