@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.1.0...1.2.0) (2021-04-28)
+
+
+### Features
+
+* add option to open new file template in new pane ([500d24b](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/500d24b7df593354a9083c15ae3c9c076884e72a))
+
 ## [1.1.0](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.0.3...1.1.0) (2021-04-27)
 
 
