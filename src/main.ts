@@ -206,7 +206,7 @@ export default class HotkeysForTemplates extends Plugin {
       new Notice('Cannot find file: ' + fileName.path);
       return;
     } else {
-      await this.templaterPlugin.parser.replace_templates_and_append(file);
+      await this.templaterPlugin.templater.append_template(file);
     }
   }
 
