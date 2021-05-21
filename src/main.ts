@@ -377,6 +377,7 @@ class SettingsTab extends PluginSettingTab {
     if (!item) {
       item = { folder: "", path: "", plugin: "core" };
     }
+    const oldItem: NewFileTemplate = Object.assign({}, item);
 
     const setting = new Setting(this.containerEl)
       .setName("New file template");
@@ -418,8 +419,9 @@ class SettingsTab extends PluginSettingTab {
         }
         this.plugin.settings.newFileTemplates[index] = item;
         this.plugin.saveSettings();
+        this.removeCommand(oldItem);
         this.plugin.pushNewFileCommand(item);
-        new Notice("Saved");
+        new Notice("Saved, please reassign your hotkey");
       });
     });
     setting.addExtraButton(cb => {
@@ -428,12 +430,16 @@ class SettingsTab extends PluginSettingTab {
       cb.onClick(() => {
         this.plugin.settings.newFileTemplates[index] = undefined;
         this.plugin.saveSettings();
-
-        (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:new-file-template-in-${item.folder}-from-${item.path}`);
+        this.removeCommand(item);
         setting.settingEl.hide();
       });
     });
   }
+
+  removeCommand(item: NewFileTemplate) {
+    (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:new-file-template-in-${item.folder}-from-${item.path}`);
+  }
+
   getTemplateFiles(file: TAbstractFile, folderPath: string): string[] {
     if (file instanceof TFile && file.extension === "md") {
       return [file.path.substring(folderPath.length + 1)];
