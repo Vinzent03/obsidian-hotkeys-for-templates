@@ -15,6 +15,7 @@ interface HotkeysForTemplateSettings {
   templaterFiles: string[],
   newFileTemplates: NewFileTemplate[];
   openNewFileTemplateInNewPane: boolean;
+  useNewFileTemplateOnFileCreation: boolean;
 }
 
 const DEFAULT_SETTINGS: HotkeysForTemplateSettings = {
@@ -22,7 +23,7 @@ const DEFAULT_SETTINGS: HotkeysForTemplateSettings = {
   templaterFiles: [],
   newFileTemplates: [],
   openNewFileTemplateInNewPane: true,
-
+  useNewFileTemplateOnFileCreation: false
 };
 
 export default class HotkeysForTemplates extends Plugin {
@@ -41,11 +42,48 @@ export default class HotkeysForTemplates extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.addSettingTab(new SettingsTab(this.app, this));
       this.enumerateTemplates();
+      this.app.vault.on("create", (file) => this.onFileCreate(file));
     });
   }
 
   onunload() {
     console.log('unloading ' + this.manifest.name + " plugin");
+  }
+
+  async onFileCreate(file: TAbstractFile) {
+    if (!this.settings.useNewFileTemplateOnFileCreation) {
+      return;
+    }
+    if (!(file instanceof TFile)) {
+      return;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    if (this.app.workspace.getActiveFile() != file) {
+      return;
+    }
+
+    const templateFile = this.settings.newFileTemplates.find(e => e.folder == file.parent.path);
+    if (templateFile) {
+      if (this.getFile(templateFile)) {
+        switch (templateFile.plugin) {
+          case 'core':
+            await this.coreInsertTemplate(templateFile);
+            break;
+          case 'templater':
+            await this.templaterInsertTemplate(templateFile);
+            break;
+          default:
+            new Notice(this.manifest.name + ': Unknown plugin type for ' + templateFile.path);
+            return;
+        }
+      }
+    }
+
+    this.app.workspace.activeLeaf.setEphemeralState({
+      rename: "all"
+    });
   }
 
   enumerateTemplates() {
@@ -289,6 +327,21 @@ class SettingsTab extends PluginSettingTab {
     containerEl.createEl("h3", {
       text: "Create a new file in a specified folder with a specified template"
     });
+
+    containerEl.createEl("h4", {
+      text: "Adds for every added entry a new command"
+    });
+
+    new Setting(containerEl)
+      .setName("Trigger on file creation")
+      .setDesc("Automatically applies the specified template for the specified folder. If more than one template is specified for the same folder, the first one is used.")
+      .addToggle(cb => {
+        cb.setValue(this.plugin.settings.useNewFileTemplateOnFileCreation);
+        cb.onChange(value => {
+          this.plugin.settings.useNewFileTemplateOnFileCreation = value;
+          this.plugin.saveSettings();
+        });
+      });
 
     new Setting(containerEl)
       .setName("Open in new pane")
