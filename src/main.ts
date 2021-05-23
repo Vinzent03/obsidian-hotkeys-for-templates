@@ -50,6 +50,14 @@ export default class HotkeysForTemplates extends Plugin {
     console.log('unloading ' + this.manifest.name + " plugin");
   }
 
+  getNewFileTemplateForFolder(folder: TFolder): undefined | TemplateFile {
+    if (folder.isRoot()) {
+      return undefined;
+    } else {
+      return this.settings.newFileTemplates.find(e => e.folder == folder.path) || this.getNewFileTemplateForFolder(folder.parent);
+    }
+  }
+
   async onFileCreate(file: TAbstractFile) {
     if (!this.settings.useNewFileTemplateOnFileCreation) {
       return;
@@ -64,7 +72,8 @@ export default class HotkeysForTemplates extends Plugin {
       return;
     }
 
-    const templateFile = this.settings.newFileTemplates.find(e => e.folder == file.parent.path);
+    const templateFile = this.getNewFileTemplateForFolder(file.parent);
+
     if (templateFile) {
       if (this.getFile(templateFile)) {
         switch (templateFile.plugin) {
@@ -79,11 +88,10 @@ export default class HotkeysForTemplates extends Plugin {
             return;
         }
       }
+      this.app.workspace.activeLeaf.setEphemeralState({
+        rename: "all"
+      });
     }
-
-    this.app.workspace.activeLeaf.setEphemeralState({
-      rename: "all"
-    });
   }
 
   enumerateTemplates() {
