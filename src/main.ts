@@ -52,7 +52,7 @@ export default class HotkeysForTemplates extends Plugin {
 
   getNewFileTemplateForFolder(folder: TFolder): undefined | TemplateFile {
     if (folder.isRoot()) {
-      return undefined;
+      return this.settings.newFileTemplates.find(e => e.folder == folder.path);
     } else {
       return this.settings.newFileTemplates.find(e => e.folder == folder.path) || this.getNewFileTemplateForFolder(folder.parent);
     }
