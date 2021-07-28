@@ -28,7 +28,7 @@ const DEFAULT_SETTINGS: HotkeysForTemplateSettings = {
 
 export default class HotkeysForTemplates extends Plugin {
   settings: HotkeysForTemplateSettings;
-
+  pauseOnFileCreate = false;
   activePlugins: string[] = [];
   templaterFolder: TFolder;
   coreTemplateFolder: TFolder;
@@ -42,7 +42,7 @@ export default class HotkeysForTemplates extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.addSettingTab(new SettingsTab(this.app, this));
       this.enumerateTemplates();
-      this.app.vault.on("create", (file) => this.onFileCreate(file));
+      this.registerEvent(this.app.vault.on("create", (file) => this.onFileCreate(file)));
     });
   }
 
@@ -59,13 +59,13 @@ export default class HotkeysForTemplates extends Plugin {
   }
 
   async onFileCreate(file: TAbstractFile) {
+    if (this.pauseOnFileCreate) return;
     if (!this.settings.useNewFileTemplateOnFileCreation) {
       return;
     }
     if (!(file instanceof TFile)) {
       return;
     }
-
     await new Promise(resolve => setTimeout(resolve, 300));
 
     if (this.app.workspace.getActiveFile() != file) {
@@ -196,6 +196,8 @@ export default class HotkeysForTemplates extends Plugin {
             new Notice(`Cannot find folder: ${folder.path}`);
             return;
           }
+          this.pauseOnFileCreate = true;
+          window.setTimeout(() => this.pauseOnFileCreate = false, 200);
           const file = await (this.app.fileManager as any).createNewMarkdownFile(folder);
           await this.app.workspace.getLeaf(this.settings.openNewFileTemplateInNewPane).openFile(file, {
             active: true,
@@ -244,7 +246,7 @@ export default class HotkeysForTemplates extends Plugin {
     } else {
       await this.corePlugin.instance.insertTemplate(file);
     }
-  }
+  };
 
   async templaterInsertTemplate(fileName: TemplateFile): Promise<void> {
     const file = this.getFile(fileName);
@@ -254,7 +256,7 @@ export default class HotkeysForTemplates extends Plugin {
     } else {
       await this.templaterPlugin.templater.append_template(file);
     }
-  }
+  };
 
   getFile(file: TemplateFile): TFile {
     let thisTemplateFolder;
