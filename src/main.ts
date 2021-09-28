@@ -104,7 +104,7 @@ export default class HotkeysForTemplates extends Plugin {
     this.saveSettings();
 
     if (this.templaterPlugin && this.templaterPlugin._loaded) { // templater-obsidian enabled
-      const templaterFolderPath = normalizePath(this.templaterPlugin.settings.template_folder);
+      const templaterFolderPath = normalizePath(this.templaterPlugin.settings.templates_folder);
       const templaterFolder = this.app.vault.getAbstractFileByPath(templaterFolderPath);
       if (!(templaterFolder instanceof TFolder) || templaterFolderPath === "/") {
         new Notice("Templater folder must be set");
@@ -254,7 +254,7 @@ export default class HotkeysForTemplates extends Plugin {
       new Notice('Cannot find file: ' + fileName.path);
       return;
     } else {
-      await this.templaterPlugin.templater.append_template(file);
+      await this.templaterPlugin.templater.append_template_to_active_file(file);
     }
   };
 
@@ -303,7 +303,7 @@ class SettingsTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.createEl("h2", { text: this.plugin.manifest.name });
     if (!this.plugin.activePlugins.length) {
-      containerEl.createEl("h3", {
+      containerEl.createEl("h4", {
         text: this.plugin.noActivePluginMsg
       });
       return;
