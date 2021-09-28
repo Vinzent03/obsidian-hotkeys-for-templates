@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.3](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.4.2...1.4.3) (2021-09-28)
+
+
+### Bug Fixes
+
+* breaking changes of Templater 1.9.0 broke api ([9fb82ca](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/9fb82cad323154645250611006bb37d98525c929)), closes [#14](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/issues/14)
+
 ### [1.4.2](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.4.1...1.4.2) (2021-07-28)
 
 
