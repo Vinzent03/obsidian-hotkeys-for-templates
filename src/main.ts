@@ -104,7 +104,8 @@ export default class HotkeysForTemplates extends Plugin {
     this.saveSettings();
 
     if (this.templaterPlugin && this.templaterPlugin._loaded) { // templater-obsidian enabled
-      const templaterFolderPath = normalizePath(this.templaterPlugin.settings.templates_folder);
+      const templaterFolderString = this.templaterPlugin.settings?.templates_folder
+      const templaterFolderPath = normalizePath(templaterFolderString ?? "");
       const templaterFolder = this.app.vault.getAbstractFileByPath(templaterFolderPath);
       if (!(templaterFolder instanceof TFolder) || templaterFolderPath === "/") {
         new Notice("Templater folder must be set");
@@ -123,7 +124,8 @@ export default class HotkeysForTemplates extends Plugin {
       }
     }
     if (this.corePlugin && this.corePlugin.enabled) { //core plugin enabled
-      const coreTemplateFolderPath = normalizePath(this.corePlugin.instance.options.folder);
+      const coreTemplateFolderString = this.corePlugin.instance.options?.folder;
+      const coreTemplateFolderPath = normalizePath(coreTemplateFolderString ?? "");
       const coreTemplateFolder = this.app.vault.getAbstractFileByPath(coreTemplateFolderPath);
       if (!(coreTemplateFolder instanceof TFolder) || coreTemplateFolderPath === "/") {
         new Notice("Template (core plugin) folder must be set");
