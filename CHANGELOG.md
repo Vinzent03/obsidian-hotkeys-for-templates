@@ -1,6 +1,12 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## [1.4.4](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.4.3...1.4.4) (2026-11-02)
+
+### Bug Fixes
+
+* catch undefined template folder ([d38b6a7](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/d38b6a772ce625e14fa815a18b99849aa5fbf7f7)), closes [#21](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/issues/21)
 
 ### [1.4.3](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.4.2...1.4.3) (2021-09-28)
 
