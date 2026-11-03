@@ -1,5 +1,31 @@
-import { App, normalizePath, Notice, Plugin, PluginSettingTab, Setting, TAbstractFile, TFile, TFolder } from "obsidian";
+import { App, FileManager, normalizePath, Notice, Plugin, PluginSettingTab, Setting, TAbstractFile, TFile, TFolder } from "obsidian";
 import { FolderSuggest } from "src/file-suggest";
+
+// These plugin integrations are not part of Obsidian's public API.
+interface CoreTemplatesPlugin {
+  enabled: boolean;
+  instance: {
+    options?: { folder?: string };
+    insertTemplate(file: TFile): Promise<void>;
+  };
+}
+
+interface TemplaterPlugin {
+  _loaded: boolean;
+  settings?: { templates_folder?: string };
+  templater: {
+    append_template_to_active_file(file: TFile): Promise<void>;
+  };
+}
+
+type AppWithTemplatePlugins = App & {
+  internalPlugins?: { plugins: { templates?: CoreTemplatesPlugin } };
+  plugins: { plugins: { "templater-obsidian"?: TemplaterPlugin } };
+};
+
+type FileManagerWithCreation = FileManager & {
+  createNewMarkdownFile(folder: TFolder): Promise<TFile>;
+};
 
 interface TemplateFile {
   plugin: "core" | "templater";
@@ -33,21 +59,18 @@ export default class HotkeysForTemplates extends Plugin {
   templaterFolder: TFolder;
   coreTemplateFolder: TFolder;
   noActivePluginMsg: string = ('No templating plugin found. Please activate one or both of the core `Templates` or the community `Templater` plugins.');
-  corePlugin: any;
-  templaterPlugin: any;
+  corePlugin: CoreTemplatesPlugin;
+  templaterPlugin: TemplaterPlugin;
 
   async onload() {
-    console.log('loading ' + this.manifest.name + ' plugin v' + this.manifest.version);
     await this.loadSettings();
     this.app.workspace.onLayoutReady(() => {
       this.addSettingTab(new SettingsTab(this.app, this));
       this.enumerateTemplates();
-      this.registerEvent(this.app.vault.on("create", (file) => this.onFileCreate(file)));
+      this.registerEvent(this.app.vault.on("create", (file) => {
+        void this.onFileCreate(file);
+      }));
     });
-  }
-
-  onunload() {
-    console.log('unloading ' + this.manifest.name + " plugin");
   }
 
   getNewFileTemplateForFolder(folder: TFolder): undefined | TemplateFile {
@@ -66,7 +89,7 @@ export default class HotkeysForTemplates extends Plugin {
     if (!(file instanceof TFile)) {
       return;
     }
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => window.setTimeout(resolve, 300));
 
     if (this.app.workspace.getActiveFile() != file) {
       return;
@@ -96,12 +119,13 @@ export default class HotkeysForTemplates extends Plugin {
 
   enumerateTemplates() {
     this.activePlugins = [];
-    this.corePlugin = (this.app as any).internalPlugins?.plugins["templates"];
-    this.templaterPlugin = (this.app as any).plugins.plugins["templater-obsidian"];
+    const app = this.app as AppWithTemplatePlugins;
+    this.corePlugin = app.internalPlugins?.plugins.templates;
+    this.templaterPlugin = app.plugins.plugins["templater-obsidian"];
 
     //remove removed new file templates from the list
     this.settings.newFileTemplates = this.settings.newFileTemplates.filter(file => file != null);
-    this.saveSettings();
+    void this.saveSettings();
 
     if (this.templaterPlugin && this.templaterPlugin._loaded) { // templater-obsidian enabled
       const templaterFolderString = this.templaterPlugin.settings?.templates_folder
@@ -146,8 +170,6 @@ export default class HotkeysForTemplates extends Plugin {
     if (!this.activePlugins.length) {
       new Notice(this.manifest.name + ': ' + this.noActivePluginMsg);
       return;
-    } else {
-      console.log(this.manifest.name + ' -> active plugins: ' + this.activePlugins);
     }
   }
 
@@ -184,7 +206,7 @@ export default class HotkeysForTemplates extends Plugin {
           new Notice(this.manifest.name + ': Unknown plugin type for ' + templateFile.path);
           return;
       }
-      this.saveSettings();
+      void this.saveSettings();
     }
   }
   pushNewFileCommand(templateFile: NewFileTemplate) {
@@ -194,13 +216,13 @@ export default class HotkeysForTemplates extends Plugin {
         name: `New file in ${templateFile.folder} from ${templateFile.path.replace(".md", "")}`,
         callback: async () => {
           const folder = this.app.vault.getAbstractFileByPath(templateFile.folder);
-          if (!folder) {
-            new Notice(`Cannot find folder: ${folder.path}`);
+          if (!(folder instanceof TFolder)) {
+            new Notice(`Cannot find folder: ${templateFile.folder}`);
             return;
           }
           this.pauseOnFileCreate = true;
           window.setTimeout(() => this.pauseOnFileCreate = false, 200);
-          const file = await (this.app.fileManager as any).createNewMarkdownFile(folder);
+          const file = await (this.app.fileManager as FileManagerWithCreation).createNewMarkdownFile(folder);
           await this.app.workspace.getLeaf(this.settings.openNewFileTemplateInNewPane).openFile(file, {
             active: true,
             state: {
@@ -236,7 +258,7 @@ export default class HotkeysForTemplates extends Plugin {
           new Notice(this.manifest.name + ': Unknown plugin type for ' + templateFile.path);
           return;
       }
-      this.saveSettings();
+      void this.saveSettings();
     }
   }
 
@@ -276,7 +298,7 @@ export default class HotkeysForTemplates extends Plugin {
     }
     thisTemplateFile = this.app.vault.getAbstractFileByPath(thisTemplateFolder + "/" + file.path);
     if (thisTemplateFile instanceof TFile) {
-      return (thisTemplateFile as TFile);
+      return thisTemplateFile;
     }
   }
 
@@ -303,20 +325,14 @@ class SettingsTab extends PluginSettingTab {
     this.newFileTemplateIndex = 0;
     this.plugin.enumerateTemplates();
     containerEl.empty();
-    containerEl.createEl("h2", { text: this.plugin.manifest.name });
+    new Setting(containerEl).setName(this.plugin.manifest.name).setHeading();
     if (!this.plugin.activePlugins.length) {
-      containerEl.createEl("h4", {
-        text: this.plugin.noActivePluginMsg
-      });
+      new Setting(containerEl).setName(this.plugin.noActivePluginMsg).setHeading();
       return;
     }
-    containerEl.createEl("h4", {
-      text: "By enabling a template, a command is added. You can set the hotkey for the command in the default 'Hotkeys' section.",
-    });
+    new Setting(containerEl).setName("By enabling a template, a command is added. You can set the hotkey for the command in the default 'Hotkeys' section.").setHeading();
     if (this.plugin.activePlugins.includes('templater-obsidian')) {
-      containerEl.createEl("h3", {
-        text: "Templates defined by the templater-obsidian plugin",
-      });
+      new Setting(containerEl).setName("Templates defined by the templater-obsidian plugin").setHeading();
       this.templates.set("templater", this.getTemplateFiles(this.plugin.templaterFolder, this.plugin.templaterFolder.path).map((e): TemplateFile => {
         return { path: e, plugin: "templater" };
       }));
@@ -325,9 +341,7 @@ class SettingsTab extends PluginSettingTab {
       }
     }
     if (this.plugin.activePlugins.includes('core')) {
-      containerEl.createEl("h3", {
-        text: "Templates defined by the core Templates plugin",
-      });
+      new Setting(containerEl).setName("Templates defined by the core Templates plugin").setHeading();
       this.templates.set("core", this.getTemplateFiles(this.plugin.coreTemplateFolder, this.plugin.coreTemplateFolder.path).map((e): TemplateFile => {
         return { path: e, plugin: "core" };
       }));
@@ -336,13 +350,9 @@ class SettingsTab extends PluginSettingTab {
       }
     }
 
-    containerEl.createEl("h3", {
-      text: "Create a new file in a specified folder with a specified template"
-    });
+    new Setting(containerEl).setName("Create a new file in a specified folder with a specified template").setHeading();
 
-    containerEl.createEl("h4", {
-      text: "Adds for every added entry a new command"
-    });
+    new Setting(containerEl).setName("Adds for every added entry a new command").setHeading();
 
     new Setting(containerEl)
       .setName("Trigger on file creation")
@@ -351,7 +361,7 @@ class SettingsTab extends PluginSettingTab {
         cb.setValue(this.plugin.settings.useNewFileTemplateOnFileCreation);
         cb.onChange(value => {
           this.plugin.settings.useNewFileTemplateOnFileCreation = value;
-          this.plugin.saveSettings();
+          void this.plugin.saveSettings();
         });
       });
 
@@ -361,7 +371,7 @@ class SettingsTab extends PluginSettingTab {
         cb.setValue(this.plugin.settings.openNewFileTemplateInNewPane);
         cb.onChange(value => {
           this.plugin.settings.openNewFileTemplateInNewPane = value;
-          this.plugin.saveSettings();
+          void this.plugin.saveSettings();
         });
       });
 
@@ -383,7 +393,7 @@ class SettingsTab extends PluginSettingTab {
         this.newFileTemplateIndex++;
       }
     }
-    this.plugin.saveSettings();
+    void this.plugin.saveSettings();
   }
 
   templateIsEnabled(file: TemplateFile): boolean {
@@ -393,7 +403,6 @@ class SettingsTab extends PluginSettingTab {
       case 'templater':
         return this.plugin.settings.templaterFiles.contains(file.path);
       default:
-        console.log(file.path + ' is associated with an unknown plugin');
         return false;
     }
   }
@@ -415,7 +424,6 @@ class SettingsTab extends PluginSettingTab {
           this.plugin.settings.templaterFiles.push(file.path);
           break;
         default:
-          console.log(file.path + ' is associated with an unknown plugin');
           return;
       }
       this.plugin.pushNormalCommand(file);
@@ -423,18 +431,17 @@ class SettingsTab extends PluginSettingTab {
       switch (file.plugin) {
         case 'core':
           this.plugin.settings.files.remove(file.path);
-          (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file.path}`);
+          this.plugin.removeCommand(file.path);
           break;
         case 'templater':
           this.plugin.settings.templaterFiles.remove(file.path);
-          (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:${file.plugin}:${file.path}`);
+          this.plugin.removeCommand(`${file.plugin}:${file.path}`);
           break;
         default:
-          console.log(file.path + ' is associated with an unknown plugin');
           return;
       }
     }
-    this.plugin.saveSettings();
+    void this.plugin.saveSettings();
   }
 
   addNewFileSetting(index: number) {
@@ -483,7 +490,7 @@ class SettingsTab extends PluginSettingTab {
           return;
         }
         this.plugin.settings.newFileTemplates[index] = item;
-        this.plugin.saveSettings();
+        void this.plugin.saveSettings();
         this.removeCommand(oldItem);
         this.plugin.pushNewFileCommand(item);
         new Notice("Saved, please reassign your hotkey");
@@ -494,7 +501,7 @@ class SettingsTab extends PluginSettingTab {
       cb.setTooltip("Remove");
       cb.onClick(() => {
         this.plugin.settings.newFileTemplates[index] = undefined;
-        this.plugin.saveSettings();
+        void this.plugin.saveSettings();
         this.removeCommand(item);
         setting.settingEl.hide();
       });
@@ -502,7 +509,7 @@ class SettingsTab extends PluginSettingTab {
   }
 
   removeCommand(item: NewFileTemplate) {
-    (this.plugin.app as any).commands.removeCommand(`${this.plugin.manifest.id}:new-file-template-in-${item.folder}-from-${item.path}`);
+    this.plugin.removeCommand(`new-file-template-in-${item.folder}-from-${item.path}`);
   }
 
   getTemplateFiles(file: TAbstractFile, folderPath: string): string[] {
