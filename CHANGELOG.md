@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.4.5](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.4.4...1.4.5) (2026-11-03)
+
+### Bug Fixes
+
+* address Obsidian community validation issues ([9face11](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/commit/9face1162b6c3e1af90279a192642c682cad12cd))
+
 ## [1.4.4](https://github.com/Vinzent03/obsidian-hotkeys-for-templates/compare/1.4.3...1.4.4) (2026-11-02)
 
 ### Bug Fixes
